@@ -1,5 +1,6 @@
 #include <iostream>
 #include <PNet\IncludeMe.h>
+#include <PNet/IPEndpoint.h>
 
 using namespace PNet;
 
@@ -20,13 +21,28 @@ public:
 int main() {
 	if (Network::Initialize()) {
 		std::cout << "socket initialized" << std::endl;
+
 		Socket socket;
 		if (socket.Create() == PResult::P_Sucess) {
 			std::cout << "server socket created" << std::endl;
+			if (socket.Listen(IPEndpoint("0.0.0.0", 4790)) == PResult::P_Sucess) {
+				std::cout << "Socket listening on port 4790" << std::endl;
+				Socket newConnection;
+				if (socket.Accept(newConnection) == PResult::P_Sucess) {
+					std::cout << "Accepted Connection" << std::endl;
+					socket.Close();
+				}
+				else {
+					std::cerr << "could not accept new connection" << std::endl;
+				}
+			}
+			else {
+				std::cerr << "listening on port 4790 failed" << std::endl;
+			}
 			socket.Close();
 		}
 		else {
-		std:cerr << "server socket creation failed" << std::endl;
+			std::cerr << "server socket creation failed" << std::endl;
 		}
 	}
 	Network::Shutdown();
