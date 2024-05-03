@@ -30,6 +30,18 @@ int main() {
 				Socket newConnection;
 				if (socket.Accept(newConnection) == PResult::P_Sucess) {
 					std::cout << "Accepted Connection" << std::endl;
+
+					char buffer[256];
+					int bytesReceived = 0;
+					int result = PResult::P_Sucess;
+					while (result == PResult::P_Sucess) {
+						result = newConnection.Recv(buffer, 256, bytesReceived);
+						if (result != PResult::P_Sucess) {
+							break;
+						}
+						std::cout << buffer << std::endl;
+					}
+
 					socket.Close();
 				}
 				else {

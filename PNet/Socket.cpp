@@ -75,11 +75,15 @@ namespace PNet {
 
 	PResult Socket::Accept(Socket& outSocket)
 	{
-		SocketHandler acceptedConnectionHandle = accept(handle, nullptr, nullptr);
+		sockaddr_in addr = {};
+		int len = sizeof(sockaddr_in);
+		SocketHandler acceptedConnectionHandle = accept(handle, (sockaddr*) & addr, &len);
 		if (acceptedConnectionHandle == INVALID_SOCKET) {
 			int error = WSAGetLastError();
 			return PResult::P_NotYetImplemented;
 		}
+
+
 		outSocket = Socket(IPVersion::IPv4, acceptedConnectionHandle);
 		return PResult::P_Sucess;
 	}
@@ -92,6 +96,34 @@ namespace PNet {
 			int error = WSAGetLastError();
 			return PResult::P_NotYetImplemented;
 		}
+		return PResult::P_Sucess;
+	}
+
+	PResult Socket::Send(void* data, int numberOfBytes, int& bytesSent)
+	{
+		bytesSent = send(handle, (const char*) data, numberOfBytes, NULL);
+
+		if (bytesSent == SOCKET_ERROR) {
+			int error = WSAGetLastError();
+			return PResult::P_NotYetImplemented;
+		}
+
+		return PResult::P_Sucess;
+	}
+
+	PResult Socket::Recv(void* destination, int numberOfBytes, int& bytesReceived)
+	{
+		bytesReceived = recv(handle, (char*) destination, numberOfBytes, NULL);
+		
+		if (bytesReceived == 0) {
+			return PResult::P_NotYetImplemented;
+		}
+
+		if (bytesReceived == SOCKET_ERROR) {
+			int error = WSAGetLastError();
+			return PResult::P_NotYetImplemented;
+		}
+
 		return PResult::P_Sucess;
 	}
 

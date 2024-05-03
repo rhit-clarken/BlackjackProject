@@ -24,6 +24,19 @@ namespace PNet {
 		}
 	}
 
+	IPEndpoint::IPEndpoint(sockaddr* addr)
+	{
+		assert(addr->sa_family == AF_INET);
+		sockaddr_in* addrv4 = reinterpret_cast<sockaddr_in*>(addr);
+		ipversion = IPVersion::IPv4;
+		port = ntohs(addrv4->sin_port);
+		ip_bytes.resize(sizeof(ULONG));
+		memcpy(&ip_bytes[0], &addrv4->sin_addr, sizeof(ULONG));
+		ip_string.resize(16);
+
+
+	}
+
 	IPVersion PNet::IPEndpoint::GetIPVersion()
 	{
 		return ipversion;
