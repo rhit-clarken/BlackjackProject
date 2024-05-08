@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Deck.h" />
     <ClInclude Include="IPEndpoint.h" />
     <ClInclude Include="IPVersion.h" />
     <ClInclude Include="Socket.h" />
@@ -141,6 +142,7 @@
     <ClInclude Include="SocketOption.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Deck.cpp" />
     <ClCompile Include="IPEndpoint.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="Socket.cpp" />

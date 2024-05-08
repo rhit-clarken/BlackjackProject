@@ -3,13 +3,18 @@
 #include <PNet/IPEndpoint.h>
 
 using namespace PNet;
-
+using namespace CardDeck;
 using namespace std;
 
 class ServerGame {
 public:
 	Socket socket;
 	Socket clientSocket;
+	CardDeck::Deck deck;
+	CardDeck::Card dealerHand[10];
+	int dealerHandValue = 0;
+	
+
 	void startGameEngine() {
 		std::cout << "Starting Game Engine" << std::endl;
 		if (Network::Initialize()) {
@@ -59,6 +64,7 @@ public:
 					std::cout << "Failed to recv client response" << std::endl;
 				}
 				else {
+					std::cout << "added client to the game" << std::endl;
 					std::cout << clientResponse << std::endl;
 				}
 			}
@@ -70,6 +76,25 @@ public:
 		}
 	}
 
+	void shareInitialCardsWithClient() {
+		std::cout << "making dealer hand" << std::endl;
+		
+		dealerHand[0] = deck.drawCard();
+		dealerHand[1] = deck.drawCard();
+		std::cout << "dealer hand" << std::endl;
+		std::cout << CardDeck::Deck::cardsToString(dealerHand,2) << std::endl;
+		for (int i = 0; i < 2; i++) {
+			dealerHandValue += dealerHand[i].cardValue();
+		}
+		std::cout << "dealer hand value" << std::endl;
+		std::cout << dealerHandValue << std::endl;
+	}
+
+	ServerGame() {
+		deck.shuffle();
+	}
+
+private:
 	void initialHandshake() {
 		char clientResponse[10];
 		int bytesReceived = 0;
@@ -82,15 +107,13 @@ public:
 		}
 	}
 
-	ServerGame() {
-	}
 };
 
 int main() {
 	ServerGame server;
 	server.startGameEngine();
-	system("pause");
 	server.acceptClient();
+	server.shareInitialCardsWithClient();
 	system("pause");
 	Network::Shutdown();
 }

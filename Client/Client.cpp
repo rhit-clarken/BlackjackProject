@@ -5,7 +5,7 @@ using namespace PNet;
 
 using namespace std;
 
-const char *SERVER_IP = "137.112.205.241";
+const char *SERVER_IP = "137.112.204.133";
 
 class ClientGame {
 public:
@@ -64,7 +64,7 @@ public:
 			
 			std::cout << "Press 0 to join game; enter 1 to stand" << std::endl;
 			std::cin >> userInput;
-			result = socket.Send(userInput, 256, bytesSent);
+			result = socket.Send(userInput, 10, bytesSent);
 			if (result != PResult::P_Sucess) {
 				std::cout << "Error sending data to the server" << std::endl;
 			}
