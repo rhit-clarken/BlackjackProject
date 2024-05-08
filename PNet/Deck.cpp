@@ -32,7 +32,44 @@ namespace CardDeck {
         }
     }
 
-    int Card::cardValue() {
+
+    std::string Card::rankToPrimitive(Rank rank) const {
+        switch (rank) {
+        case CardDeck::Rank::ACE:   return "1";
+        case CardDeck::Rank::TWO:   return "2";
+        case CardDeck::Rank::THREE: return "3";
+        case CardDeck::Rank::FOUR:  return "4";
+        case CardDeck::Rank::FIVE:  return "5";
+        case CardDeck::Rank::SIX:   return "6";
+        case CardDeck::Rank::SEVEN: return "7";
+        case CardDeck::Rank::EIGHT: return "8";
+        case CardDeck::Rank::NINE:  return "9";
+        case CardDeck::Rank::TEN:   return "10";
+        case CardDeck::Rank::JACK:  return "11";
+        case CardDeck::Rank::QUEEN: return "12";
+        case CardDeck::Rank::KING:  return "13";
+        }
+        return "";
+    }
+
+    std::string Card::suitToPrimitive(Suit suit) const {
+        switch (suit) {
+        case CardDeck::Suit::HEARTS:   return "1";
+        case CardDeck::Suit::DIAMONDS: return "2";
+        case CardDeck::Suit::CLUBS:    return "3";
+        case CardDeck::Suit::SPADES:   return "4";
+        }
+        return "";
+    }
+
+    std::string Card::getPrimitive()
+    {
+        std::string primitive = "";
+        primitive = CardDeck::Card::suitToPrimitive(suit) + " " + CardDeck::Card::rankToPrimitive(rank) + " ";
+        return primitive;
+    }
+
+    int Card::cardValue() const {
         switch (rank) {
         case Rank::ACE:
             return 11; // Ace default value is 11
@@ -61,13 +98,13 @@ namespace CardDeck {
         return 0; // Default case, should never reach here
     }
 
-    std::string CardDeck::Deck::toString() const
+    int Card::calculateHandValue(const std::vector<CardDeck::Card>& hand)
     {
-        std::string result;
-        for (const auto& card : cards) {
-            result += rankToString(card.rank) + " of " + suitToString(card.suit) + "\n";
+        int value = 0;
+        for (std::vector<CardDeck::Card>::size_type i = 0; i < hand.size(); i++) {
+            value += hand[i].cardValue();
         }
-        return result;
+        return value;
     }
 
     std::string Deck::cardToString(const Card& card)
@@ -111,36 +148,6 @@ namespace CardDeck {
             }
         }
         return result;
-    }
-
-
-    std::string Deck::rankToString(Rank rank) const {
-        switch (rank) {
-        case CardDeck::Rank::ACE:   return "Ace";
-        case CardDeck::Rank::TWO:   return "Two";
-        case CardDeck::Rank::THREE: return "Three";
-        case CardDeck::Rank::FOUR:  return "Four";
-        case CardDeck::Rank::FIVE:  return "Five";
-        case CardDeck::Rank::SIX:   return "Six";
-        case CardDeck::Rank::SEVEN: return "Seven";
-        case CardDeck::Rank::EIGHT: return "Eight";
-        case CardDeck::Rank::NINE:  return "Nine";
-        case CardDeck::Rank::TEN:   return "Ten";
-        case CardDeck::Rank::JACK:  return "Jack";
-        case CardDeck::Rank::QUEEN: return "Queen";
-        case CardDeck::Rank::KING:  return "King";
-        }
-        return "";
-    }
-
-    std::string Deck::suitToString(Suit suit) const {
-        switch (suit) {
-        case CardDeck::Suit::HEARTS:   return "Hearts";
-        case CardDeck::Suit::DIAMONDS: return "Diamonds";
-        case CardDeck::Suit::CLUBS:    return "Clubs";
-        case CardDeck::Suit::SPADES:   return "Spades";
-        }
-        return "";
     }
    
 }

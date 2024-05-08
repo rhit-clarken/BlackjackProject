@@ -73,6 +73,25 @@ public:
 		socket.Close();
 	}
 
+	void getInitialHands() {
+		std::cout << "Waiting for initial Hands" << std::endl;
+		char dBuff[10];
+		int bytesReceived = 0;
+		int result = socket.Recv(dBuff, 10, bytesReceived);
+
+		
+		if (result != PResult::P_Sucess) {
+			std::cout << "Error getting data from server" << std::endl;
+		}
+		else {
+			std::cout << "Got primitives" << dBuff << std::endl;
+			if (result != PResult::P_Sucess) {
+				std::cout << "Error sending data to the server" << std::endl;
+			}
+		}
+
+	}
+
 	ClientGame() {
 	}
 };
@@ -83,6 +102,7 @@ int main() {
 	newGame.startClientEngine();
 	newGame.connectToServer();
 	newGame.joinGame();
+	newGame.getInitialHands();
 	system("pause");
 	Network::Shutdown();
 }

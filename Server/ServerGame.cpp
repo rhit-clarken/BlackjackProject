@@ -11,9 +11,15 @@ public:
 	Socket socket;
 	Socket clientSocket;
 	CardDeck::Deck deck;
-	CardDeck::Card dealerHand[10];
+	std::vector<CardDeck::Card> dealerHand;
+	int numberOfClients = 0;
+	std::vector<vector<CardDeck::Card>> clientHands;
 	int dealerHandValue = 0;
 	
+	ServerGame() {
+		deck.shuffle();
+		int dealerHandValue = 0;
+	}
 
 	void startGameEngine() {
 		std::cout << "Starting Game Engine" << std::endl;
@@ -65,7 +71,10 @@ public:
 				}
 				else {
 					std::cout << "added client to the game" << std::endl;
-					std::cout << clientResponse << std::endl;
+					numberOfClients += 1;
+					std::cout << "number of clients:" << std::endl;
+					std::cout << numberOfClients << std::endl;
+					clientHands.resize(numberOfClients);
 				}
 			}
 
@@ -76,22 +85,52 @@ public:
 		}
 	}
 
-	void shareInitialCardsWithClient() {
+	void makeAllInitialHands() {
+		//dealer hand
 		std::cout << "making dealer hand" << std::endl;
-		
-		dealerHand[0] = deck.drawCard();
-		dealerHand[1] = deck.drawCard();
-		std::cout << "dealer hand" << std::endl;
-		std::cout << CardDeck::Deck::cardsToString(dealerHand,2) << std::endl;
-		for (int i = 0; i < 2; i++) {
-			dealerHandValue += dealerHand[i].cardValue();
+		initialize2CardHand(dealerHand);
+		std::cout << CardDeck::Deck::cardsToString(dealerHand.data(), dealerHand.size()) << std::endl;
+		int dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
+		std::cout << "value: " << dealerHandValue << std::endl;
+
+		//client hands
+		for (int i = 0; i < clientHands.size(); i++) {
+			initialize2CardHand(clientHands[i]);
+			std::cout << "Client Hand " << i << ":" << std::endl;
+			std::cout << CardDeck::Deck::cardsToString(clientHands[i].data(), clientHands[i].size()) << std::endl;
+			std::cout << "value: " << CardDeck::Card::calculateHandValue(clientHands[i]) << std::endl;
 		}
-		std::cout << "dealer hand value" << std::endl;
-		std::cout << dealerHandValue << std::endl;
+
 	}
 
-	ServerGame() {
-		deck.shuffle();
+	void sendClientsInitialHands() {
+		std::string dealerHandPrimitive = "";
+		vector<std::string> clientHandPrimitives;
+		clientHandPrimitives.reserve(clientHands.size());
+
+
+		for (int i = 0; i < dealerHand.size(); i++) {
+			dealerHandPrimitive += dealerHand[i].getPrimitive();
+		}
+
+		for (int i = 0; i < clientHands.size(); i++) {
+			clientHandPrimitives.push_back("");
+			for (int j = 0; j < clientHands[i].size(); j++) {
+				clientHandPrimitives[i] += clientHands[i][j].getPrimitive();
+			}
+		}
+
+		//send dealer hand
+		const char* dealerHandBuffer = dealerHandPrimitive.c_str();
+		size_t dBuffSize = strlen(dealerHandBuffer) + 1;
+		char* dBuff = new char[dBuffSize];
+		
+		strcpy_s(dBuff, dBuffSize, dealerHandBuffer);
+
+		int bytesSent = 0;
+
+		std::cout << "sending hand data to client: " << dBuff << std::endl;
+		int result = clientSocket.Send(dBuff, 256, bytesSent);
 	}
 
 private:
@@ -107,13 +146,22 @@ private:
 		}
 	}
 
+	void initialize2CardHand(vector<CardDeck::Card> & hand) {
+		if (hand.size() < 2) {
+			hand.resize(2);
+		}
+		hand[0] = deck.drawCard();
+		hand[1] = deck.drawCard();
+	}
+
 };
 
 int main() {
 	ServerGame server;
 	server.startGameEngine();
 	server.acceptClient();
-	server.shareInitialCardsWithClient();
+	server.makeAllInitialHands();
+	server.sendClientsInitialHands();
 	system("pause");
 	Network::Shutdown();
 }

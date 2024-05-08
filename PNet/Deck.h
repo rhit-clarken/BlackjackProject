@@ -20,7 +20,11 @@ namespace CardDeck {
 	struct Card {
 		Suit suit;
 		Rank rank;
-		int cardValue();
+		std::string getPrimitive();
+		int cardValue() const;
+		static int calculateHandValue(const std::vector<CardDeck::Card>& hand);
+		std::string rankToPrimitive(Rank rank) const;
+		std::string suitToPrimitive(Suit suit) const;
 	};
 
 	class Deck {
@@ -28,12 +32,11 @@ namespace CardDeck {
 		Deck();
 		void shuffle();
 		Card drawCard();
-		std::string toString() const;
 		static std::string cardToString(const Card& card);
 		static std::string cardsToString(const Card cards[], int size);
 	private:
 		std::vector<Card> cards;
-		std::string rankToString(Rank rank) const;
-		std::string suitToString(Suit suit) const;
+		
 	};
+	
 };
