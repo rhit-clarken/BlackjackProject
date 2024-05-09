@@ -1,5 +1,7 @@
 #include "Deck.h"
-
+#include <iostream>
+#include <sstream>
+#include <string>
 
 namespace CardDeck {
     CardDeck::Deck::Deck()
@@ -60,6 +62,42 @@ namespace CardDeck {
         case CardDeck::Suit::SPADES:   return "4";
         }
         return "";
+    }
+
+    std::vector<Card> Card::primitiveToCards(std::string primitive)
+    {
+        std::vector<Card> cards;
+        std::istringstream iss(primitive);
+        int primitiveValue;
+
+        while(iss >> primitiveValue) {
+            Card thisCard;
+            switch (primitiveValue) {
+                case 1: thisCard.suit = CardDeck::Suit::HEARTS; break;
+                case 2: thisCard.suit = CardDeck::Suit::DIAMONDS; break;
+                case 3: thisCard.suit = CardDeck::Suit::CLUBS; break;
+                case 4: thisCard.suit = CardDeck::Suit::SPADES; break;
+            }
+
+            iss >> primitiveValue;
+            switch (primitiveValue) {
+                case 1: thisCard.rank = CardDeck::Rank::ACE; break;
+                case 2: thisCard.rank = CardDeck::Rank::TWO; break;
+                case 3: thisCard.rank = CardDeck::Rank::THREE; break;
+                case 4: thisCard.rank = CardDeck::Rank::FOUR; break;
+                case 5: thisCard.rank = CardDeck::Rank::FIVE; break;
+                case 6: thisCard.rank = CardDeck::Rank::SIX; break;
+                case 7: thisCard.rank = CardDeck::Rank::SEVEN; break;
+                case 8: thisCard.rank = CardDeck::Rank::EIGHT; break;
+                case 9: thisCard.rank = CardDeck::Rank::NINE; break;
+                case 10: thisCard.rank = CardDeck::Rank::TEN; break;
+                case 11: thisCard.rank = CardDeck::Rank::JACK; break;
+                case 12: thisCard.rank = CardDeck::Rank::QUEEN; break;
+                case 13: thisCard.rank = CardDeck::Rank::KING; break;
+            }
+            cards.push_back(thisCard);
+        }
+        return cards;
     }
 
     std::string Card::getPrimitive()

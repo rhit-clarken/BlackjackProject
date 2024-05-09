@@ -25,6 +25,7 @@ namespace CardDeck {
 		static int calculateHandValue(const std::vector<CardDeck::Card>& hand);
 		std::string rankToPrimitive(Rank rank) const;
 		std::string suitToPrimitive(Suit suit) const;
+		static std::vector<Card> primitiveToCards(std::string primitive);
 	};
 
 	class Deck {

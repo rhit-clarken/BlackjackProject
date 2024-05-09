@@ -120,17 +120,26 @@ public:
 			}
 		}
 
-		//send dealer hand
+		//send dealer hand - TODO: multithread this
 		const char* dealerHandBuffer = dealerHandPrimitive.c_str();
-		size_t dBuffSize = strlen(dealerHandBuffer) + 1;
-		char* dBuff = new char[dBuffSize];
+		const char* clientHandBuffer = clientHandPrimitives[0].c_str();
+		size_t hBuffSize = strlen(dealerHandBuffer) + 1 + strlen(clientHandBuffer) + 1;
+		char* hBuff = new char[hBuffSize];
 		
-		strcpy_s(dBuff, dBuffSize, dealerHandBuffer);
+		strcpy_s(hBuff, hBuffSize, dealerHandBuffer);
+		strcat_s(hBuff, hBuffSize, ";");
+		strcat_s(hBuff, hBuffSize, clientHandBuffer);
 
 		int bytesSent = 0;
 
-		std::cout << "sending hand data to client: " << dBuff << std::endl;
-		int result = clientSocket.Send(dBuff, 256, bytesSent);
+		std::cout << "sending hand data to client: " << hBuff << std::endl;
+		int result = clientSocket.Send(hBuff, (int) hBuffSize, bytesSent);
+		if (result != PResult::P_Sucess) {
+			std::cout << "Failed to ask client" << std::endl;
+		}
+		else {
+			std::cout << "Now wait for client" << std::endl;
+		}
 	}
 
 private:

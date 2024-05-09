@@ -5,7 +5,7 @@ using namespace PNet;
 
 using namespace std;
 
-const char *SERVER_IP = "137.112.204.133";
+const char *SERVER_IP = "137.112.205.90";
 
 class ClientGame {
 public:
@@ -69,33 +69,92 @@ public:
 				std::cout << "Error sending data to the server" << std::endl;
 			}
 		}
-
-		socket.Close();
 	}
 
 	void getInitialHands() {
 		std::cout << "Waiting for initial Hands" << std::endl;
-		char dBuff[10];
+		char dBuff[40];
 		int bytesReceived = 0;
-		int result = socket.Recv(dBuff, 10, bytesReceived);
+		int result = socket.Recv(dBuff, 40, bytesReceived);
 
-		
 		if (result != PResult::P_Sucess) {
 			std::cout << "Error getting data from server" << std::endl;
 		}
 		else {
-			std::cout << "Got primitives" << dBuff << std::endl;
-			if (result != PResult::P_Sucess) {
-				std::cout << "Error sending data to the server" << std::endl;
+			std::string hands = std::string(dBuff);
+			std::cout << "Got primitives: " << hands << std::endl;
+
+			char delimiter = ' ;';
+			size_t pos = hands.find(delimiter);
+			std::string dealerPrim = hands.substr(0, pos);
+			std::string playerPrim = hands.substr(pos + 1);
+
+			vector<CardDeck::Card> dealerHand = CardDeck::Card::primitiveToCards(dealerPrim);
+			std::cout << "Dealer Hand:" << CardDeck::Deck::cardsToString(dealerHand.data(), dealerHand.size()) << std::endl;
+			int dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
+			std::cout << "Dealer Hand Value: " << dealerHandValue << std::endl;
+
+			vector<CardDeck::Card> playerHand = CardDeck::Card::primitiveToCards(playerPrim);
+			std::cout << "Player Hand:" << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
+			int playerHandValue = CardDeck::Card::calculateHandValue(playerHand);
+			std::cout << "Player Hand Value: " << playerHandValue << std::endl;
+
+			playerTurn(playerHand, playerHandValue);
+		}
+	}
+
+	void playerTurn(vector<CardDeck::Card>& playerHand, int& playerHandValue) {
+		while (true) {
+			//bust
+			if (playerHandValue > 21) {
+				submitHandToServer("BUST", playerHandValue);
+				return;
+			}
+			else if (playerHandValue == 21) {
+				submitHandToServer("STAND", playerHandValue);
+				return;
+			}
+			else {
+				char userInput[10];
+				std::cout << "Type 'h' to hit or 's' to stand" << std::endl;
+				std::cin >> userInput;
+				if (*userInput == 'h') {
+					CardDeck::Card card = getHitFromServer();
+					playerHand.push_back(card);
+					playerHandValue += card.cardValue();
+					playerTurn(playerHand, playerHandValue);
+					continue;
+				}
+				else {
+					submitHandToServer("STAND", playerHandValue);
+					return;
+				}
 			}
 		}
+	}
 
+	CardDeck::Card getHitFromServer() {
+		std::cout << "TODO: Get card from server" << std::endl;
+		return { CardDeck::Suit::HEARTS, CardDeck::Rank::ACE };
+	}
+
+	void submitHandToServer(std::string action, int handValue) {
+		std::cout << "TODO: Tell server to " << action << std::endl;
+	}
+
+	void disconnect() {
+		socket.Close();
+		Network::Shutdown();
 	}
 
 	ClientGame() {
 	}
 };
 
+enum class Statuses {
+	BUST,
+	STAND
+};
 
 int main() {
 	ClientGame newGame;
@@ -104,5 +163,6 @@ int main() {
 	newGame.joinGame();
 	newGame.getInitialHands();
 	system("pause");
-	Network::Shutdown();
+	newGame.disconnect();
+	
 }
