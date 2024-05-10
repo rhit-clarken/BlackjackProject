@@ -108,7 +108,6 @@ public:
 		vector<std::string> clientHandPrimitives;
 		clientHandPrimitives.reserve(clientHands.size());
 
-
 		for (int i = 0; i < dealerHand.size(); i++) {
 			dealerHandPrimitive += dealerHand[i].getPrimitive();
 		}
@@ -142,7 +141,141 @@ public:
 		}
 	}
 
+	void handleClientActions() {
+		int numberOfOpenClientThreads = clientHands.size();
+		while (true) {
+			char clientRequest[50];
+			int result;
+			int bytesSent, bytesReceived = 0;
+
+			result = clientSocket.Recv(clientRequest, 50, bytesSent);
+			if (result != PResult::P_Sucess) {
+				std::cout << "Failed to get client actions" << std::endl;
+				return;
+			}
+			else {
+				std::string clientAction = std::string(clientRequest);
+				std::cout << "Client wants to: " << clientAction << std::endl;
+				if (strcmp(clientRequest, "HIT") == 0) {
+					handleHitRequest();
+				}
+				else if (clientAction.find("STAND") != std::string::npos) {
+					int i = clientAction.find(";");
+					int clientHandValue = std::stoi(clientAction.substr(i + 1));
+					handleStand(clientHandValue);
+				}
+				else {
+					std::cout << "Bust by default" << std::endl;
+					handleBust();
+				}
+			}
+
+		}
+
+	}
+
+	void sendClientGameEndStatus(std::string status, vector<CardDeck::Card> dealerNewCards) {
+		std::cout << "Client stands and " << status << std::endl;
+		char buff[50];
+		int bytesSent = 0;
+		std::string newCardsPrimitive = "";
+
+		for (int i = 0; i < dealerNewCards.size(); i++) {
+			newCardsPrimitive += dealerNewCards[i].getPrimitive();
+		}
+
+		strcpy_s(buff, status.c_str());
+		strcat_s(buff, ";");
+		strcat_s(buff, newCardsPrimitive.c_str());
+		
+		std::cout << ". Send client status" << buff << std::endl;
+		int result = clientSocket.Send(buff, 50, bytesSent);
+
+		if (result != PResult::P_Sucess) {
+			std::cout << "Failed to send client game end status" << std::endl;
+		}
+	}
+
 private:
+
+	vector<CardDeck::Card> dealerDrawUntil17() {
+		vector<CardDeck::Card> cardsDrawn;
+		while (true) {
+			if (dealerHandValue > 21) {
+				return cardsDrawn;
+			}
+			else if (dealerHandValue < 17) {
+				CardDeck::Card newCard = deck.drawCard();
+
+				int newCardVal = newCard.cardValue();
+
+				cardsDrawn.push_back(newCard);
+				dealerHand.push_back(newCard);
+				dealerHandValue += newCardVal;
+
+				std::cout << "DEALER DRAWS: " << CardDeck::Deck::cardToString(newCard) << std::endl;
+				std::cout << "New dealer hand value: " << dealerHandValue << std::endl;
+			}
+			else {
+				return cardsDrawn;
+			}
+
+		}
+	}
+
+	void handleStand(int clientHand) {
+		vector<CardDeck::Card> newCards = dealerDrawUntil17();
+		if (clientHand > 21) {
+			handleBust();
+		}
+		else if (dealerHandValue > 21) {
+			sendClientGameEndStatus("WIN", newCards);
+		}
+		else if (clientHand > dealerHandValue) {
+			sendClientGameEndStatus("WIN", newCards);
+		}
+		else if (clientHand < dealerHandValue) {
+			sendClientGameEndStatus("LOSE", newCards);
+		}
+		else {
+			sendClientGameEndStatus("PUSH", newCards);
+		}
+	}
+
+	void handleBust() {
+		std::cout << "Client busts. Send client lose status" << std::endl;
+		char buff[50];
+		int bytesSent = 0;
+
+		strcpy_s(buff, "LOSE");
+
+		int result = clientSocket.Send(buff, 50, bytesSent);
+
+		if (result != PResult::P_Sucess) {
+			std::cout << "Failed to send client new card" << std::endl;
+		}
+	}
+
+	void handleHitRequest() {
+		int bytesSent = 0;
+
+		std::cout << "Need to hit: " << std::endl;
+		CardDeck::Card newCard = deck.drawCard();
+		std::string newCardPrimitive = newCard.getPrimitive();
+		std::cout << "New Card: " << CardDeck::Deck::cardToString(newCard) << std::endl;
+
+
+		const char* convertBuff = newCardPrimitive.c_str();
+		size_t cBuffSize = strlen(convertBuff) + 1;
+		char* cBuff = new char[cBuffSize];
+		strcpy_s(cBuff, cBuffSize, convertBuff);
+		std::cout << "New Card primitive: " << cBuff << std::endl;
+		int result = clientSocket.Send(cBuff, (int)cBuffSize, bytesSent);
+		if (result != PResult::P_Sucess) {
+			std::cout << "Failed to send client new card" << std::endl;
+		}
+	}
+
 	void initialHandshake() {
 		char clientResponse[10];
 		int bytesReceived = 0;
@@ -171,6 +304,7 @@ int main() {
 	server.acceptClient();
 	server.makeAllInitialHands();
 	server.sendClientsInitialHands();
+	server.handleClientActions();
 	system("pause");
 	Network::Shutdown();
 }

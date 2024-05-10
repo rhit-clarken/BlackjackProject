@@ -9,6 +9,8 @@ const char *SERVER_IP = "137.112.205.90";
 
 class ClientGame {
 public:
+	int playerHandValue = 0;
+	vector<CardDeck::Card> playerHand;
 	Socket socket;
 	void startClientEngine() {
 		std::cout << "Starting Client Engine" << std::endl;
@@ -94,9 +96,9 @@ public:
 			int dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
 			std::cout << "Dealer Hand Value: " << dealerHandValue << std::endl;
 
-			vector<CardDeck::Card> playerHand = CardDeck::Card::primitiveToCards(playerPrim);
+			playerHand = CardDeck::Card::primitiveToCards(playerPrim);
 			std::cout << "Player Hand:" << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
-			int playerHandValue = CardDeck::Card::calculateHandValue(playerHand);
+			playerHandValue = CardDeck::Card::calculateHandValue(playerHand);
 			std::cout << "Player Hand Value: " << playerHandValue << std::endl;
 
 			playerTurn(playerHand, playerHandValue);
@@ -120,9 +122,6 @@ public:
 				std::cin >> userInput;
 				if (*userInput == 'h') {
 					CardDeck::Card card = getHitFromServer();
-					playerHand.push_back(card);
-					playerHandValue += card.cardValue();
-					playerTurn(playerHand, playerHandValue);
 					continue;
 				}
 				else {
@@ -135,11 +134,79 @@ public:
 
 	CardDeck::Card getHitFromServer() {
 		std::cout << "TODO: Get card from server" << std::endl;
+		char buffer[50];
+		char newCardPrimitive[50];
+		int result;
+		int bytesSent, bytesReceived = 0;
+		strcpy_s(buffer, "HIT");
+
+		result = socket.Send(buffer, 50, bytesSent);
+		if (result != PResult::P_Sucess) {
+			std::cout << "Error sending hit request server" << std::endl;
+		}
+		else {
+			std::cout << "Now wait for server hit response" << std::endl;
+			result = socket.Recv(newCardPrimitive, 50, bytesReceived);
+			if (result != PResult::P_Sucess) {
+				std::cout << "Error getting card from the server" << std::endl;
+			}
+			else {
+				std::cout << "New card primitive: " << newCardPrimitive << std::endl;
+				CardDeck::Card newCard = CardDeck::Card::primitiveToCards(newCardPrimitive)[0];
+				std::cout << "Got card: " << CardDeck::Deck::cardToString(newCard) << std::endl;
+
+				playerHand.push_back(newCard);
+				playerHandValue += newCard.cardValue();
+
+				std::cout << "player hand: " << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
+				std::cout << "value: " << playerHandValue << std::endl;
+			}
+		}
 		return { CardDeck::Suit::HEARTS, CardDeck::Rank::ACE };
 	}
 
 	void submitHandToServer(std::string action, int handValue) {
 		std::cout << "TODO: Tell server to " << action << std::endl;
+		char buffer[50];
+		int result;
+		int bytesSent = 0;
+
+		std::string handValueStr = std::to_string(handValue);
+		snprintf(buffer, sizeof(buffer), "%s;%s", action.c_str(), handValueStr.c_str());
+		std::cout << "buffer: " << buffer << std::endl;
+
+		if (action == "BUST" || action == "STAND") {
+			result = socket.Send(buffer, 50, bytesSent);
+			if (result != PResult::P_Sucess) {
+				std::cout << "Error sending data to the server" << std::endl;
+			}
+			else {
+				std::cout << "Now wait for client response" << std::endl;
+			}
+		}
+		else {
+			std::cout << "unkown action " << action << std::endl;
+		}
+	}
+
+	void getGameEndStatus() {
+		char buff[50];
+		int bytesReceived = 0;
+		int result = socket.Recv(buff, 50, bytesReceived);
+		if (result != PResult::P_Sucess) {
+			std::cout << "Error getting game end status from server" << std::endl;
+		}
+		else {
+			std::cout << "Got: " << buff << std::endl;
+			std::string serverResponse = std::string(buff);
+			int i = serverResponse.find(";");
+			std::string dealerPrim = serverResponse.substr(i + 1);
+			vector<CardDeck::Card> dealerCards = CardDeck::Card::primitiveToCards(dealerPrim);
+
+			std::cout << "Dealer Hand:" << CardDeck::Deck::cardsToString(dealerCards.data(), dealerCards.size()) << std::endl;
+			int dealerHandValue = CardDeck::Card::calculateHandValue(dealerCards);
+			std::cout << "Dealer Hand Value: " << dealerHandValue << std::endl;
+		}
 	}
 
 	void disconnect() {
@@ -162,6 +229,7 @@ int main() {
 	newGame.connectToServer();
 	newGame.joinGame();
 	newGame.getInitialHands();
+	newGame.getGameEndStatus();
 	system("pause");
 	newGame.disconnect();
 	
