@@ -101,11 +101,11 @@ public:
 			playerHandValue = CardDeck::Card::calculateHandValue(playerHand);
 			std::cout << "Player Hand Value: " << playerHandValue << std::endl;
 
-			playerTurn(playerHand, playerHandValue);
+			playerTurn();
 		}
 	}
 
-	void playerTurn(vector<CardDeck::Card>& playerHand, int& playerHandValue) {
+	void playerTurn() {
 		while (true) {
 			//bust
 			if (playerHandValue > 21) {

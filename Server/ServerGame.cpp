@@ -90,7 +90,7 @@ public:
 		std::cout << "making dealer hand" << std::endl;
 		initialize2CardHand(dealerHand);
 		std::cout << CardDeck::Deck::cardsToString(dealerHand.data(), dealerHand.size()) << std::endl;
-		int dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
+		dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
 		std::cout << "value: " << dealerHandValue << std::endl;
 
 		//client hands
