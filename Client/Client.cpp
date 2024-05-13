@@ -1,5 +1,7 @@
+#include <Client/ClientApp.h>
 #include <PNet/IncludeMe.h>
 #include <iostream>
+
 
 using namespace PNet;
 
@@ -224,6 +226,9 @@ enum class Statuses {
 };
 
 int main() {
+
+	run_Window();
+
 	ClientGame newGame;
 	newGame.startClientEngine();
 	newGame.connectToServer();
@@ -232,5 +237,6 @@ int main() {
 	newGame.getGameEndStatus();
 	system("pause");
 	newGame.disconnect();
-	
+
+	return 0;
 }
