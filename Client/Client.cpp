@@ -5,13 +5,14 @@ using namespace PNet;
 
 using namespace std;
 
-const char *SERVER_IP = "137.112.205.90";
+const char *SERVER_IP = "137.112.207.246";
 
 class ClientGame {
 public:
 	int playerHandValue = 0;
 	vector<CardDeck::Card> playerHand;
 	Socket socket;
+	CardDeck::Card dealerInitialCard;
 	void startClientEngine() {
 		std::cout << "Starting Client Engine" << std::endl;
 		if (Network::Initialize()) {
@@ -92,14 +93,15 @@ public:
 			std::string playerPrim = hands.substr(pos + 1);
 
 			vector<CardDeck::Card> dealerHand = CardDeck::Card::primitiveToCards(dealerPrim);
-			std::cout << "Dealer Hand:" << CardDeck::Deck::cardsToString(dealerHand.data(), dealerHand.size()) << std::endl;
+			dealerInitialCard = dealerHand[0];
+			std::cout << "DEALER 1ST CARD:" << CardDeck::Deck::cardsToString(dealerHand.data(), dealerHand.size()) << std::endl;
 			int dealerHandValue = CardDeck::Card::calculateHandValue(dealerHand);
-			std::cout << "Dealer Hand Value: " << dealerHandValue << std::endl;
+			std::cout << "DEALER HAND VALUE: " << dealerHandValue << std::endl;
 
 			playerHand = CardDeck::Card::primitiveToCards(playerPrim);
-			std::cout << "Player Hand:" << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
+			std::cout << "PLAYER HAND:" << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
 			playerHandValue = CardDeck::Card::calculateHandValue(playerHand);
-			std::cout << "Player Hand Value: " << playerHandValue << std::endl;
+			std::cout << "PLAYER HAND VALUE: " << playerHandValue << std::endl;
 
 			playerTurn();
 		}
@@ -153,20 +155,20 @@ public:
 			else {
 				std::cout << "New card primitive: " << newCardPrimitive << std::endl;
 				CardDeck::Card newCard = CardDeck::Card::primitiveToCards(newCardPrimitive)[0];
-				std::cout << "Got card: " << CardDeck::Deck::cardToString(newCard) << std::endl;
+				std::cout << "GOT NEW CARD: " << CardDeck::Deck::cardToString(newCard) << std::endl;
 
 				playerHand.push_back(newCard);
 				playerHandValue += newCard.cardValue();
 
-				std::cout << "player hand: " << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
-				std::cout << "value: " << playerHandValue << std::endl;
+				std::cout << "NEW PLAYER HAND: " << CardDeck::Deck::cardsToString(playerHand.data(), playerHand.size()) << std::endl;
+				std::cout << "NEW PLAYER HAND VALUE: " << playerHandValue << std::endl;
 			}
 		}
 		return { CardDeck::Suit::HEARTS, CardDeck::Rank::ACE };
 	}
 
 	void submitHandToServer(std::string action, int handValue) {
-		std::cout << "TODO: Tell server to " << action << std::endl;
+		std::cout << "Tell server to " << action << std::endl;
 		char buffer[50];
 		int result;
 		int bytesSent = 0;
@@ -203,9 +205,12 @@ public:
 			std::string dealerPrim = serverResponse.substr(i + 1);
 			vector<CardDeck::Card> dealerCards = CardDeck::Card::primitiveToCards(dealerPrim);
 
-			std::cout << "Dealer Hand:" << CardDeck::Deck::cardsToString(dealerCards.data(), dealerCards.size()) << std::endl;
+			std::cout << "DEALER DREW:" << CardDeck::Deck::cardsToString(dealerCards.data(), dealerCards.size()) << std::endl;
 			int dealerHandValue = CardDeck::Card::calculateHandValue(dealerCards);
-			std::cout << "Dealer Hand Value: " << dealerHandValue << std::endl;
+			std::cout << "DEALER NEW HAND VALUE: " << (dealerInitialCard.cardValue() + dealerHandValue) << std::endl;
+
+			std::string gameResult = serverResponse.substr(0, i);
+			std::cout << "GAME RESULT: YOU " << gameResult << std::endl;
 		}
 	}
 
@@ -226,7 +231,6 @@ enum class Statuses {
 int main() {
 	ClientGame newGame;
 	newGame.startClientEngine();
-	newGame.connectToServer();
 	newGame.joinGame();
 	newGame.getInitialHands();
 	newGame.getGameEndStatus();

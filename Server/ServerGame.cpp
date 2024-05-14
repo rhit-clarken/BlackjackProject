@@ -108,9 +108,10 @@ public:
 		vector<std::string> clientHandPrimitives;
 		clientHandPrimitives.reserve(clientHands.size());
 
-		for (int i = 0; i < dealerHand.size(); i++) {
-			dealerHandPrimitive += dealerHand[i].getPrimitive();
-		}
+		//only want to send client one of dealer cards
+
+		dealerHandPrimitive += dealerHand[0].getPrimitive();
+
 
 		for (int i = 0; i < clientHands.size(); i++) {
 			clientHandPrimitives.push_back("");
@@ -199,7 +200,10 @@ public:
 private:
 
 	vector<CardDeck::Card> dealerDrawUntil17() {
+		std::cout << "DEALER TURN: " << dealerHandValue << std::endl;
 		vector<CardDeck::Card> cardsDrawn;
+		std::cout << "DEALER FLIPS 2ND CARD TO REVEAL: " << CardDeck::Deck::cardToString(dealerHand[1]) << std::endl;
+		cardsDrawn.push_back(dealerHand[1]);
 		while (true) {
 			if (dealerHandValue > 21) {
 				return cardsDrawn;
