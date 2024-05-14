@@ -7,7 +7,8 @@ using namespace PNet;
 
 using namespace std;
 
-const char *SERVER_IP = "137.112.205.90";
+const char *SERVER_IP = "137.112.214.25";
+//const char* SERVER_IP = "137.112.207.246";
 
 class ClientGame {
 public:
@@ -231,7 +232,7 @@ int main() {
 
 	ClientGame newGame;
 	newGame.startClientEngine();
-	newGame.connectToServer();
+	//newGame.connectToServer();
 	newGame.joinGame();
 	newGame.getInitialHands();
 	newGame.getGameEndStatus();
