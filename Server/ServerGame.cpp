@@ -52,44 +52,17 @@ public:
 		return;
 	}
 
-	//void acceptClient() {
-	//	if (socket.Accept(clientSocket) == PResult::P_Sucess) {
-	//		std::cout << "Accepted Connection" << std::endl;
+	void listenForClients() {
+		if (socket.Listen(IPEndpoint("0.0.0.0", 4790)) == PResult::P_Sucess) {
+			std::cout << "Socket listening on port 4790" << std::endl;
+			acceptClient();
+		}
+		else {
+			std::cerr << "listening on port 4790 failed" << std::endl;
+		}
+		return;
+	}
 
-	//		//expect initial handshake
-	//		initialHandshake();
-
-	//		char buffer[256];
-	//		strcpy_s(buffer, "Would you like to join a blackjack table?\0");
-	//		int bytesSent = 0;
-
-	//		int result = clientSocket.Send(buffer, 256, bytesSent);
-
-	//		if (result != PResult::P_Sucess) {
-	//			std::cout << "Failed to ask client" << std::endl;
-	//		}
-	//		else {
-	//			char clientResponse[10];
-	//			int bytesReceived = 0;
-	//			int result = clientSocket.Recv(clientResponse,256,bytesReceived);
-	//			if (result != PResult::P_Sucess) {
-	//				std::cout << "Failed to recv client response" << std::endl;
-	//			}
-	//			else {
-	//				std::cout << "added client to the game" << std::endl;
-	//				numberOfClients += 1;
-	//				std::cout << "number of clients:" << std::endl;
-	//				std::cout << numberOfClients << std::endl;
-	//				clientHands.resize(numberOfClients);
-	//			}
-	//		}
-
-	//		socket.Close();
-	//	}
-	//	else {
-	//		std::cerr << "could not accept new connection" << std::endl;
-	//	}
-	//}
 
 	int acceptClient() {
 		Socket clientSocket;
@@ -120,9 +93,16 @@ public:
 					numberOfClients += 1;
 					std::cout << "number of clients:" << std::endl;
 					std::cout << numberOfClients << std::endl;
-					clientHands.resize(numberOfClients);
-					std::thread t(&ServerGame::thread_wrapper, this, clientSocket, numberOfClients);
-					threadpool.push_back(move(t));
+					//clientHands.resize(numberOfClients);
+					Socket threadSocket;
+					if (threadSocket.Create() == PResult::P_Sucess) {
+						std::thread t(&ServerGame::threadWrapper, this, threadSocket, numberOfClients - 1);
+						threadpool.push_back(move(t));
+						mtx.lock();
+						std::vector<CardDeck::Card> tmp;
+						clientHands.push_back(tmp);
+						mtx.unlock();
+					}
 				}
 			}
 
@@ -265,7 +245,7 @@ public:
 	}
 
 	//maybe make private???
-	void thread_wrapper(Socket clientSocket, int handIndex) {
+	void threadWrapper(Socket clientSocket, int handIndex) {
 		//while (acceptClient(clientSocket) == 0) {
 			makeAllInitialHands(handIndex);
 			sendClientsInitialHands(clientSocket);
@@ -273,10 +253,11 @@ public:
 		//}
 	}
 
-	void handle_threads() {
+	void handleThreads() {
 		for (int i = 0; i < numberOfClients; i++) {
 			threadpool[i].join();
 		}
+
 	}
 
 private:
@@ -381,14 +362,17 @@ private:
 
 };
 
-int main() {
-	ServerGame server;
-	server.startGameEngine();
-	//server.acceptClient();
-	//server.makeAllInitialHands();
-	//server.sendClientsInitialHands();
-	//server.handleClientActions();
-	server.handle_threads();
-	system("pause");
-	Network::Shutdown();
-}
+//int main() {
+//	ServerGame server;
+//	server.startGameEngine();
+//	//server.acceptClient();
+//	//server.makeAllInitialHands();
+//	//server.sendClientsInitialHands();
+//	//server.handleClientActions();
+//	//while (1) {
+//	//	/*server.listenForClients();
+//	//	server.handleThreads();*/
+//	//}
+//	system("pause");
+//	Network::Shutdown();
+//}
