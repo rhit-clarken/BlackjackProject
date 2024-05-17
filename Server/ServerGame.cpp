@@ -1,6 +1,8 @@
 #include <iostream>
 #include <PNet\IncludeMe.h>
 #include <PNet/IPEndpoint.h>
+#include <thread>
+
 
 using namespace PNet;
 using namespace CardDeck;
@@ -9,12 +11,15 @@ using namespace std;
 class ServerGame {
 public:
 	Socket socket;
-	Socket clientSocket;
+	//Socket clientSocket;
 	CardDeck::Deck deck;
 	std::vector<CardDeck::Card> dealerHand;
 	int numberOfClients = 0;
 	std::vector<vector<CardDeck::Card>> clientHands;
 	int dealerHandValue = 0;
+	bool inGame = false;
+	std::vector<int> clientRecv;
+
 	
 	ServerGame() {
 		deck.shuffle();
@@ -28,15 +33,26 @@ public:
 
 			if (socket.Create() == PResult::P_Sucess) {
 				std::cout << "server socket created" << std::endl;
-				if (socket.Listen(IPEndpoint("0.0.0.0", 4790)) == PResult::P_Sucess) {
-					std::cout << "Socket listening on port 4790" << std::endl;
+				//while (1)
+				//{
+					if (socket.Listen(IPEndpoint("0.0.0.0", 4790)) == PResult::P_Sucess) {
+						std::cout << "Socket listening on port 4790" << std::endl;
+						//Socket clientSocket;
+						////clientSocket.Create();
+						///*thread t(&ServerGame::acceptClient, this, clientSocket);
+						//t.detach();*/
+						////acceptClient();
+						////handleClient(&clientSocket);
+						//thread t(&ServerGame::handleClient, this, &clientSocket);
+						//t.join();
+						handleClient();
 					
-					acceptClient();
-				}
-				else {
-					std::cerr << "listening on port 4790 failed" << std::endl;
-				}
-				socket.Close();
+					}
+					else {
+						std::cerr << "listening on port 4790 failed" << std::endl;
+					}
+					socket.Close();
+				//}
 			}
 			else {
 				std::cerr << "server socket creation failed" << std::endl;
@@ -46,18 +62,42 @@ public:
 		return;
 	}
 
-	void acceptClient() {
-		if (socket.Accept(clientSocket) == PResult::P_Sucess) {
-			std::cout << "Accepted Connection" << std::endl;
+	void handleClient() {
+		while (1) {
+			Socket clientSocket;
+			if (socket.Accept(clientSocket) == PResult::P_Sucess) {
+				std::cout << "Accepted Connection" << std::endl;
+				thread t(&ServerGame::doit, this, &clientSocket);
+				t.join();
+				//doit(&clientSocket);
+				//clientSocket.Close();
+				
+			}
+			else {
+				std::cerr << "could not accept new connection" << std::endl;
+			}
+		}
+	}
+
+	void doit(Socket* clientSocket) {
+		acceptClient(clientSocket);
+		makeAllInitialHands(clientSocket);
+		sendClientsInitialHands(clientSocket);
+		handleClientActions(clientSocket);
+	}
+
+	void acceptClient(Socket *clientSocket) {
+		//if (socket.Accept(*clientSocket) == PResult::P_Sucess) {
+		//	std::cout << "Accepted Connection" << std::endl;
 
 			//expect initial handshake
-			initialHandshake();
+			initialHandshake(*clientSocket);
 
 			char buffer[256];
 			strcpy_s(buffer, "Would you like to join a blackjack table?\0");
 			int bytesSent = 0;
 
-			int result = clientSocket.Send(buffer, 256, bytesSent);
+			int result = clientSocket->Send(buffer, 256, bytesSent);
 
 			if (result != PResult::P_Sucess) {
 				std::cout << "Failed to ask client" << std::endl;
@@ -65,7 +105,7 @@ public:
 			else {
 				char clientResponse[10];
 				int bytesReceived = 0;
-				int result = clientSocket.Recv(clientResponse,256,bytesReceived);
+				int result = clientSocket->Recv(clientResponse,256,bytesReceived);
 				if (result != PResult::P_Sucess) {
 					std::cout << "Failed to recv client response" << std::endl;
 				}
@@ -78,14 +118,14 @@ public:
 				}
 			}
 
-			socket.Close();
-		}
-		else {
-			std::cerr << "could not accept new connection" << std::endl;
-		}
+			//socket.Close();
+		//}
+		//else {
+		//	std::cerr << "could not accept new connection" << std::endl;
+		//}
 	}
 
-	void makeAllInitialHands() {
+	void makeAllInitialHands(Socket *clientSocket) {
 		//dealer hand
 		std::cout << "making dealer hand" << std::endl;
 		initialize2CardHand(dealerHand);
@@ -103,7 +143,7 @@ public:
 
 	}
 
-	void sendClientsInitialHands() {
+	void sendClientsInitialHands(Socket *clientSocket) {
 		std::string dealerHandPrimitive = "";
 		vector<std::string> clientHandPrimitives;
 		clientHandPrimitives.reserve(clientHands.size());
@@ -133,7 +173,7 @@ public:
 		int bytesSent = 0;
 
 		std::cout << "sending hand data to client: " << hBuff << std::endl;
-		int result = clientSocket.Send(hBuff, (int) hBuffSize, bytesSent);
+		int result = clientSocket->Send(hBuff, (int) hBuffSize, bytesSent);
 		if (result != PResult::P_Sucess) {
 			std::cout << "Failed to ask client" << std::endl;
 		}
@@ -142,14 +182,14 @@ public:
 		}
 	}
 
-	void handleClientActions() {
+	void handleClientActions(Socket *clientSocket) {
 		int numberOfOpenClientThreads = clientHands.size();
 		while (true) {
 			char clientRequest[50];
 			int result;
 			int bytesSent, bytesReceived = 0;
 
-			result = clientSocket.Recv(clientRequest, 50, bytesSent);
+			result = clientSocket->Recv(clientRequest, 50, bytesSent);
 			if (result != PResult::P_Sucess) {
 				std::cout << "Failed to get client actions" << std::endl;
 				return;
@@ -158,16 +198,16 @@ public:
 				std::string clientAction = std::string(clientRequest);
 				std::cout << "Client wants to: " << clientAction << std::endl;
 				if (strcmp(clientRequest, "HIT") == 0) {
-					handleHitRequest();
+					handleHitRequest(clientSocket);
 				}
 				else if (clientAction.find("STAND") != std::string::npos) {
 					int i = clientAction.find(";");
 					int clientHandValue = std::stoi(clientAction.substr(i + 1));
-					handleStand(clientHandValue);
+					handleStand(clientHandValue, clientSocket);
 				}
 				else {
 					std::cout << "Bust by default" << std::endl;
-					handleBust();
+					handleBust(clientSocket);
 				}
 			}
 
@@ -175,7 +215,7 @@ public:
 
 	}
 
-	void sendClientGameEndStatus(std::string status, vector<CardDeck::Card> dealerNewCards) {
+	void sendClientGameEndStatus(std::string status, vector<CardDeck::Card> dealerNewCards, Socket *clientSocket) {
 		std::cout << "Client stands and " << status << std::endl;
 		char buff[50];
 		int bytesSent = 0;
@@ -190,7 +230,7 @@ public:
 		strcat_s(buff, newCardsPrimitive.c_str());
 		
 		std::cout << ". Send client status" << buff << std::endl;
-		int result = clientSocket.Send(buff, 50, bytesSent);
+		int result = clientSocket->Send(buff, 50, bytesSent);
 
 		if (result != PResult::P_Sucess) {
 			std::cout << "Failed to send client game end status" << std::endl;
@@ -227,40 +267,40 @@ private:
 		}
 	}
 
-	void handleStand(int clientHand) {
+	void handleStand(int clientHand, Socket *clientSocket) {
 		vector<CardDeck::Card> newCards = dealerDrawUntil17();
 		if (clientHand > 21) {
-			handleBust();
+			handleBust(clientSocket);
 		}
 		else if (dealerHandValue > 21) {
-			sendClientGameEndStatus("WIN", newCards);
+			sendClientGameEndStatus("WIN", newCards, clientSocket);
 		}
 		else if (clientHand > dealerHandValue) {
-			sendClientGameEndStatus("WIN", newCards);
+			sendClientGameEndStatus("WIN", newCards, clientSocket);
 		}
 		else if (clientHand < dealerHandValue) {
-			sendClientGameEndStatus("LOSE", newCards);
+			sendClientGameEndStatus("LOSE", newCards, clientSocket);
 		}
 		else {
-			sendClientGameEndStatus("PUSH", newCards);
+			sendClientGameEndStatus("PUSH", newCards, clientSocket);
 		}
 	}
 
-	void handleBust() {
+	void handleBust(Socket *clientSocket) {
 		std::cout << "Client busts. Send client lose status" << std::endl;
 		char buff[50];
 		int bytesSent = 0;
 
 		strcpy_s(buff, "LOSE");
 
-		int result = clientSocket.Send(buff, 50, bytesSent);
+		int result = clientSocket->Send(buff, 50, bytesSent);
 
 		if (result != PResult::P_Sucess) {
 			std::cout << "Failed to send client new card" << std::endl;
 		}
 	}
 
-	void handleHitRequest() {
+	void handleHitRequest(Socket *clientSocket) {
 		int bytesSent = 0;
 
 		std::cout << "Need to hit: " << std::endl;
@@ -274,13 +314,13 @@ private:
 		char* cBuff = new char[cBuffSize];
 		strcpy_s(cBuff, cBuffSize, convertBuff);
 		std::cout << "New Card primitive: " << cBuff << std::endl;
-		int result = clientSocket.Send(cBuff, (int)cBuffSize, bytesSent);
+		int result = clientSocket->Send(cBuff, (int)cBuffSize, bytesSent);
 		if (result != PResult::P_Sucess) {
 			std::cout << "Failed to send client new card" << std::endl;
 		}
 	}
 
-	void initialHandshake() {
+	void initialHandshake(Socket clientSocket) {
 		char clientResponse[10];
 		int bytesReceived = 0;
 		int result = clientSocket.Recv(clientResponse, 10, bytesReceived);
@@ -305,10 +345,10 @@ private:
 int main() {
 	ServerGame server;
 	server.startGameEngine();
-	server.acceptClient();
-	server.makeAllInitialHands();
-	server.sendClientsInitialHands();
-	server.handleClientActions();
+	//server.acceptClient();
+	//server.makeAllInitialHands();
+	//server.sendClientsInitialHands();
+	//server.handleClientActions();
 	system("pause");
 	Network::Shutdown();
 }

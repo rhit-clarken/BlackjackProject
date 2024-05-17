@@ -1,5 +1,8 @@
 #include "Socket.h"
 #include <assert.h>
+#include <iostream>
+
+using namespace std;
 
 namespace PNet {
 	Socket::Socket(IPVersion ipversion, SocketHandler handle):ipversion(ipversion), handle(handle)
@@ -102,9 +105,9 @@ namespace PNet {
 	PResult Socket::Send(void* data, int numberOfBytes, int& bytesSent)
 	{
 		bytesSent = send(handle, (const char*) data, numberOfBytes, NULL);
-
+		std::cout << bytesSent << std::endl;
 		if (bytesSent == SOCKET_ERROR) {
-			int error = WSAGetLastError();
+			std::cout << WSAGetLastError() <<endl;
 			return PResult::P_NotYetImplemented;
 		}
 
