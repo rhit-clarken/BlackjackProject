@@ -7,7 +7,7 @@ using namespace PNet;
 
 using namespace std;
 
-const char *SERVER_IP = "137.112.207.246";
+const char *SERVER_IP = "137.112.212.241";
 
 class ClientGame {
 public:
@@ -232,7 +232,7 @@ enum class Statuses {
 
 int main() {
 
-	run_Window();
+	//run_Window();
 
 	ClientGame newGame;
 	newGame.startClientEngine();
